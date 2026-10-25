@@ -1,0 +1,18 @@
+{
+  "updated": "2026-10-25",
+  "presets": [
+    {"name": "6x400 / 1:30", "prep": 0, "rounds": 6,
+     "steps": [{"l": "RUN 400", "s": 0}, {"l": "REST", "s": 90, "k": "rest"}]},
+    {"name": "EMOM 16", "prep": 10, "rounds": 16,
+     "steps": [{"l": "MINUTE", "s": 60}]},
+    {"name": "Tabata x2 blocks", "prep": 10, "rounds": 2,
+     "steps": [{"l": "WORK", "s": 20}, {"l": "REST", "s": 10, "k": "rest"},
+               {"l": "WORK", "s": 20}, {"l": "REST", "s": 10, "k": "rest"},
+               {"l": "WORK", "s": 20}, {"l": "REST", "s": 10, "k": "rest"},
+               {"l": "WORK", "s": 20}, {"l": "REST", "s": 10, "k": "rest"},
+               {"l": "WORK", "s": 20}, {"l": "REST", "s": 10, "k": "rest"},
+               {"l": "WORK", "s": 20}, {"l": "REST", "s": 10, "k": "rest"},
+               {"l": "WORK", "s": 20}, {"l": "REST", "s": 10, "k": "rest"},
+               {"l": "WORK", "s": 20}, {"l": "BLOCK REST", "s": 60, "k": "rest"}]}
+  ]
+}
