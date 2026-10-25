@@ -1,0 +1,9 @@
+<fonts>
+    <font id="ClockXL" filename="clock_xl.fnt" antialias="true"/>
+    <font id="ClockLG" filename="clock_lg.fnt" antialias="true"/>
+    <font id="Title" filename="title.fnt" antialias="true"/>
+    <font id="Stat" filename="stat.fnt" antialias="true"/>
+    <font id="Label" filename="label.fnt" antialias="true"/>
+    <font id="Small" filename="small.fnt" antialias="true"/>
+    <font id="Tiny" filename="tiny.fnt" antialias="true"/>
+</fonts>

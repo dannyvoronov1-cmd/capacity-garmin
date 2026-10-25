@@ -2,6 +2,8 @@ import Toybox.Application;
 import Toybox.Application.Storage;
 import Toybox.Graphics;
 import Toybox.Lang;
+import Toybox.Time;
+import Toybox.Time.Gregorian;
 import Toybox.WatchUi;
 
 // Workouts pushed from Claude live here (GitHub Pages, docs/presets.json in the repo).
@@ -103,6 +105,34 @@ function closeWorkout(menusOnTop) {
 }
 
 // ---------- home screen ----------
+// Shows the next synced workout with a START pill. START runs it,
+// swipe up / tap / hold opens the full menu.
+
+function upNext() {
+    var synced = loadList("synced");
+    if (synced.size() > 0) {
+        return synced[0];
+    }
+    return null;
+}
+
+function homeSummary(w) {
+    var rounds = getNum(w, "rounds", 1);
+    var steps = w.get("steps");
+    var total = 0;
+    var open = false;
+    if (steps instanceof Lang.Array) {
+        for (var i = 0; i < steps.size(); i++) {
+            var s = getNum(steps[i], "s", 0);
+            if (s == 0) {
+                open = true;
+            }
+            total += s * rounds;
+        }
+    }
+    var r = rounds > 1 ? rounds.toString() + " ROUNDS" : "1 ROUND";
+    return r + " · " + (open ? "LAP ENDS RUNS" : fmtTime(total));
+}
 
 class HomeView extends WatchUi.View {
 
@@ -110,47 +140,82 @@ class HomeView extends WatchUi.View {
         View.initialize();
     }
 
+    function onShow() {
+        useFonts([F_TITLE, F_LABEL, F_SMALL, F_TINY]);
+    }
+
+    function onHide() {
+        dropFonts();
+    }
+
     function onUpdate(dc) {
         var w = dc.getWidth();
         var h = dc.getHeight();
         var cx = w / 2;
-        var center = Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER;
+        var C = Graphics.TEXT_JUSTIFY_CENTER;
         dc.setColor(C_TEXT, C_BG);
         dc.clear();
 
-        dc.setColor(C_TEXT, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h * 25 / 100, Graphics.FONT_LARGE, "CAPACITY", center);
-        dc.setColor(C_GOLD, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h * 37 / 100, Graphics.FONT_TINY, "C L O C K", center);
-        dc.setColor(C_HAIR, C_HAIR);
-        dc.fillRectangle(w * 25 / 100, h * 45 / 100, w / 2, 1);
+        txt(dc, cx, h * 15 / 100, F_LABEL, "C A P A C I T Y", C_TEXT3, C);
 
-        var synced = loadList("synced");
-        var title = "";
-        var line = "";
-        if (synced.size() > 0) {
-            title = "UP NEXT";
-            line = getStr(synced[0], "name", "");
+        var next = upNext();
+        var top = "TODAY";
+        var name = "";
+        var sub = "";
+        if (next != null) {
+            name = getStr(next, "name", "Workout");
+            sub = homeSummary(next);
         } else {
             var last = Storage.getValue("last");
             if (last != null) {
-                title = "LAST";
-                line = getStr(last, "name", "");
+                top = "AGAIN";
+                name = getStr(last, "name", "Workout");
+                sub = homeSummary(last);
+            } else {
+                top = "QUICK";
+                name = quickName(loadQuick());
+                sub = "INTERVALS";
             }
         }
-        if (line.length() > 0) {
-            dc.setColor(C_TEXT3, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, h * 52 / 100, Graphics.FONT_XTINY, title, center);
-            dc.setColor(C_TEXT, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, h * 61 / 100, Graphics.FONT_SMALL, line, center);
-        }
-        if (SYNC_URL.length() > 0) {
-            dc.setColor(C_TEXT2, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, h * 71 / 100, Graphics.FONT_XTINY, gSyncMsg, center);
-        }
+        var status = syncStatus();
+        txt(dc, cx, h * 30 / 100, F_SMALL, status.length() > 0 ? top + " · " + status : top, C_GOLD, C);
+        var nameFont = txtWidth(dc, F_TITLE, name) <= w * 86 / 100 ? F_TITLE : F_LABEL;
+        txt(dc, cx, h * 43 / 100, nameFont, name, C_TEXT, C);
+        txt(dc, cx, h * 56 / 100, F_SMALL, sub, C_TEXT2, C);
+
+        // START pill
+        var pw = w * 42 / 100;
+        var ph = h * 14 / 100;
+        var py = h * 73 / 100;
         dc.setColor(C_GOLD, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h * 84 / 100, Graphics.FONT_TINY, "START = MENU", center);
+        dc.fillRoundedRectangle(cx - pw / 2, py, pw, ph, ph / 2);
+        txt(dc, cx, py + ph / 2, F_LABEL, "START", C_INK, C);
+
+        var more = loadList("synced").size() - 1;
+        txt(dc, cx, h * 93 / 100, F_TINY, more > 0 ? "+" + more.toString() + " MORE · SWIPE UP" : "SWIPE UP FOR TIMERS", C_TEXT3, C);
     }
+}
+
+// "SYNCED 19:02", "PHONE OFF", or "" before the first sync
+function syncStatus() {
+    if (SYNC_URL.length() == 0) {
+        return "";
+    }
+    if (gSyncBusy) {
+        return "SYNCING";
+    }
+    if (gSyncOk) {
+        var at = Storage.getValue("syncedAt");
+        if (at != null) {
+            var info = Gregorian.info(new Time.Moment(at), Time.FORMAT_SHORT);
+            return "SYNCED " + info.hour.format("%02d") + ":" + info.min.format("%02d");
+        }
+        return "SYNCED";
+    }
+    if (gSyncFailed) {
+        return gSyncMsg.toUpper();
+    }
+    return "";
 }
 
 class HomeDelegate extends WatchUi.BehaviorDelegate {
@@ -159,7 +224,26 @@ class HomeDelegate extends WatchUi.BehaviorDelegate {
         BehaviorDelegate.initialize();
     }
 
+    // START button: run what's up next
     function onSelect() {
+        var next = upNext();
+        if (next == null) {
+            next = Storage.getValue("last");
+        }
+        if (next != null) {
+            launchWorkout(next);
+        } else {
+            openQuickMenu();
+        }
+        return true;
+    }
+
+    function onTap(evt) {
+        openMainMenu();
+        return true;
+    }
+
+    function onNextPage() {
         openMainMenu();
         return true;
     }

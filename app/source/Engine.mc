@@ -25,6 +25,7 @@ class Engine {
     var running = false;
     var finished = false;
     var lapCount = 1;
+    var actualMs = [];      // how long each finished step really took
 
     hidden var stepAccum = 0;
     hidden var stepMark = 0;
@@ -210,6 +211,7 @@ class Engine {
             finish();
             return;
         }
+        recordStep();
         addSessionLap();
         idx++;
         stepAccum = carryMs;
@@ -220,6 +222,7 @@ class Engine {
     }
 
     hidden function finish() {
+        recordStep();
         totalAccum = totalMs();
         stepAccum = stepMs();
         running = false;
@@ -237,6 +240,47 @@ class Engine {
         tone(:finish);
         light();
         WatchUi.requestUpdate();
+    }
+
+    hidden function recordStep() {
+        var d = durs[idx];
+        if (d > 0 && !kinds[idx].equals("up")) {
+            actualMs.add(d * 1000);
+        } else {
+            actualMs.add(stepMs());
+        }
+    }
+
+    // Fastest open (LAP-ended) work step, in ms. Null when there were none.
+    function bestOpenMs() {
+        var best = null;
+        for (var i = 0; i < actualMs.size() && i < kinds.size(); i++) {
+            if (kinds[i].equals("open")) {
+                if (best == null || actualMs[i] < best) {
+                    best = actualMs[i];
+                }
+            }
+        }
+        return best;
+    }
+
+    // How many rounds were started.
+    function roundsDone() {
+        if (finished) {
+            return roundTotal;
+        }
+        var r = roundOf[idx];
+        return r > 0 ? r : 0;
+    }
+
+    // Progress of the current step, 0..1. Null for open steps.
+    function stepFrac() {
+        var d = durs[idx];
+        if (d <= 0) {
+            return null;
+        }
+        var f = stepMs().toFloat() / (d * 1000);
+        return f > 1 ? 1.0 : f;
     }
 
     // ---------- recording ----------

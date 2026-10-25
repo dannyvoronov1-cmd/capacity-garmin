@@ -2,6 +2,7 @@ import Toybox.Application.Storage;
 import Toybox.Communications;
 import Toybox.Graphics;
 import Toybox.Lang;
+import Toybox.Time;
 import Toybox.WatchUi;
 
 // ---------- main menu ----------
@@ -434,6 +435,8 @@ var gSyncItem = null;
 var gSyncHandler = null;
 var gSyncMsg = "Not synced yet";
 var gSyncBusy = false;
+var gSyncOk = false;
+var gSyncFailed = false;
 
 function startSync(item) {
     gSyncItem = item;
@@ -491,10 +494,21 @@ function handleSync(code, data) {
                 }
             }
             Storage.setValue("synced", clean);
+            Storage.setValue("syncedAt", Time.now().value());
+            gSyncOk = true;
+            gSyncFailed = false;
             msg = "Synced " + clean.size().toString() + " workouts";
         }
     } else if (code == -104 || code == -2) {
         msg = "Phone not connected";
+    }
+    if (!gSyncOk) {
+        gSyncFailed = true;
+        if (msg.find("Phone") != null) {
+            msg = "Phone off";
+        } else {
+            msg = "Sync failed " + code.toString();
+        }
     }
     gSyncMsg = msg;
     if (gSyncItem != null) {
