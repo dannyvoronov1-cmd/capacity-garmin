@@ -113,30 +113,43 @@ class HomeView extends WatchUi.View {
     function onUpdate(dc) {
         var w = dc.getWidth();
         var h = dc.getHeight();
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
-        dc.clear();
+        var cx = w / 2;
         var center = Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER;
+        dc.setColor(C_TEXT, C_BG);
+        dc.clear();
 
-        dc.setColor(Graphics.COLOR_GREEN, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2, h * 30 / 100, Graphics.FONT_MEDIUM, "CAPACITY", center);
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2, h * 42 / 100, Graphics.FONT_MEDIUM, "CLOCK", center);
+        dc.setColor(C_TEXT, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, h * 25 / 100, Graphics.FONT_LARGE, "CAPACITY", center);
+        dc.setColor(C_GOLD, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, h * 37 / 100, Graphics.FONT_TINY, "C L O C K", center);
+        dc.setColor(C_HAIR, C_HAIR);
+        dc.fillRectangle(w * 25 / 100, h * 45 / 100, w / 2, 1);
 
         var synced = loadList("synced");
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+        var title = "";
+        var line = "";
         if (synced.size() > 0) {
-            dc.drawText(w / 2, h * 56 / 100, Graphics.FONT_XTINY, "UP NEXT: " + getStr(synced[0], "name", ""), center);
+            title = "UP NEXT";
+            line = getStr(synced[0], "name", "");
         } else {
             var last = Storage.getValue("last");
             if (last != null) {
-                dc.drawText(w / 2, h * 56 / 100, Graphics.FONT_XTINY, "LAST: " + getStr(last, "name", ""), center);
+                title = "LAST";
+                line = getStr(last, "name", "");
             }
         }
-        if (SYNC_URL.length() > 0) {
-            dc.drawText(w / 2, h * 64 / 100, Graphics.FONT_XTINY, gSyncMsg, center);
+        if (line.length() > 0) {
+            dc.setColor(C_TEXT3, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, h * 52 / 100, Graphics.FONT_XTINY, title, center);
+            dc.setColor(C_TEXT, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, h * 61 / 100, Graphics.FONT_SMALL, line, center);
         }
-        dc.setColor(Graphics.COLOR_YELLOW, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2, h * 76 / 100, Graphics.FONT_TINY, "START = menu", center);
+        if (SYNC_URL.length() > 0) {
+            dc.setColor(C_TEXT2, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, h * 71 / 100, Graphics.FONT_XTINY, gSyncMsg, center);
+        }
+        dc.setColor(C_GOLD, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, h * 84 / 100, Graphics.FONT_TINY, "START = MENU", center);
     }
 }
 

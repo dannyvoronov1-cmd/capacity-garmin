@@ -7,6 +7,17 @@ import Toybox.WatchUi;
 //   Before start:  START starts, BACK leaves.
 //   Running:       START pauses (menu), BACK = lap / skip to next step.
 //   Touch is ignored while a workout is running, so a sweaty wrist can't pause it.
+// CAPACITY palette (see the "Capacity Clock - Watch" design canvas)
+const C_BG = 0x121213;
+const C_INK = 0x16151A;
+const C_TEXT = 0xF5F5F5;
+const C_TEXT2 = 0xB4B4B8;
+const C_TEXT3 = 0x85848B;
+const C_HAIR = 0x2E2D32;
+const C_GOLD = 0xCEA85E;
+const C_COPPER = 0xC67832;
+const C_REST = 0x3D3C42;
+
 class TimerView extends WatchUi.View {
 
     function initialize() {
@@ -21,94 +32,146 @@ class TimerView extends WatchUi.View {
         var w = dc.getWidth();
         var h = dc.getHeight();
         var cx = w / 2;
+        var left = w * 12 / 100;
+        var right = w * 88 / 100;
+        var bandH = h * 24 / 100;
         var center = Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER;
 
-        var bg = Graphics.COLOR_BLACK;
-        var fg = Graphics.COLOR_WHITE;
-        var accent = Graphics.COLOR_YELLOW;
+        dc.setColor(C_TEXT, C_BG);
+        dc.clear();
+
+        // ---- phase band ----
         var label = "";
-        var sub = "";
-        var big = 0;
+        var bandFill = null;     // null = no fill, gold label on a hairline
+        var labelColor = C_GOLD;
+        var barColor = C_GOLD;
+        var kind = "";
 
         if (!e.started) {
             label = "READY";
-            sub = e.name;
-            big = e.durs[0];
         } else if (e.finished) {
             label = "DONE";
-            sub = e.name;
-            big = e.totalMs() / 1000;
-            accent = Graphics.COLOR_GREEN;
+        } else if (!e.running) {
+            label = "PAUSED";
         } else {
-            var kind = e.kinds[e.idx];
+            kind = e.kinds[e.idx];
             label = e.labels[e.idx];
-            big = e.displaySeconds();
-            if (!e.running) {
-                label = "PAUSED";
-            } else if (kind.equals("prep")) {
-                bg = Graphics.COLOR_ORANGE;
-                fg = Graphics.COLOR_BLACK;
-                accent = Graphics.COLOR_BLACK;
+            if (kind.equals("prep")) {
+                bandFill = C_COPPER;
+                labelColor = C_INK;
+                barColor = C_COPPER;
             } else if (kind.equals("work")) {
-                bg = Graphics.COLOR_DK_GREEN;
-                accent = Graphics.COLOR_WHITE;
+                bandFill = C_GOLD;
+                labelColor = C_INK;
+                barColor = C_GOLD;
             } else if (kind.equals("rest")) {
-                bg = Graphics.COLOR_DK_RED;
-                accent = Graphics.COLOR_WHITE;
+                bandFill = C_REST;
+                labelColor = C_TEXT;
+                barColor = C_TEXT2;
             } else {
-                bg = Graphics.COLOR_DK_BLUE;
-                accent = Graphics.COLOR_WHITE;
+                bandFill = C_TEXT;
+                labelColor = C_INK;
+                barColor = C_TEXT2;
             }
-            sub = roundText(e);
         }
 
-        dc.setColor(fg, bg);
-        dc.clear();
+        if (bandFill != null) {
+            dc.setColor(bandFill, bandFill);
+            dc.fillRectangle(0, 0, w, bandH);
+        } else {
+            dc.setColor(C_HAIR, C_HAIR);
+            dc.fillRectangle(0, bandH, w, 1);
+        }
+        dc.setColor(labelColor, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, bandH * 64 / 100, Graphics.FONT_MEDIUM, label, center);
 
-        // phase label
-        dc.setColor(accent, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h * 14 / 100, Graphics.FONT_MEDIUM, label, center);
+        // ---- second line ----
+        var sub = "";
+        if (!e.started || e.finished) {
+            sub = e.name;
+        } else {
+            sub = roundText(e);
+        }
+        dc.setColor(C_TEXT2, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, h * 31 / 100, Graphics.FONT_TINY, sub, center);
 
-        // round / name line
-        dc.setColor(fg, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h * 26 / 100, Graphics.FONT_TINY, sub, center);
-
-        // big clock
+        // ---- big clock ----
+        var big = 0;
+        if (!e.started) {
+            big = e.durs[0];
+        } else if (e.finished) {
+            big = e.totalMs() / 1000;
+        } else {
+            big = e.displaySeconds();
+        }
         var t = fmtTime(big);
         var fonts = [Graphics.FONT_NUMBER_THAI_HOT, Graphics.FONT_NUMBER_HOT, Graphics.FONT_NUMBER_MEDIUM];
         var font = fonts[fonts.size() - 1];
         for (var i = 0; i < fonts.size(); i++) {
-            if (dc.getTextWidthInPixels(t, fonts[i]) <= w * 92 / 100) {
+            if (dc.getTextWidthInPixels(t, fonts[i]) <= w * 90 / 100) {
                 font = fonts[i];
                 break;
             }
         }
-        dc.drawText(cx, h * 50 / 100, font, t, center);
+        dc.setColor(C_TEXT, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, h * 53 / 100, font, t, center);
 
-        // bottom lines
+        // ---- ready ----
         if (!e.started) {
-            dc.setColor(Graphics.COLOR_YELLOW, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, h * 74 / 100, Graphics.FONT_TINY, "START to go", center);
-            dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, h * 85 / 100, Graphics.FONT_XTINY, stepCountText(e), center);
+            dc.setColor(C_GOLD, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, h * 77 / 100, Graphics.FONT_TINY, "START TO GO", center);
+            dc.setColor(C_TEXT3, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, h * 87 / 100, Graphics.FONT_XTINY, planText(e), center);
             return;
         }
+
+        // ---- done ----
         if (e.finished) {
-            dc.setColor(Graphics.COLOR_YELLOW, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, h * 76 / 100, Graphics.FONT_TINY, "START = save", center);
+            dc.setColor(C_TEXT2, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(left, h * 75 / 100, Graphics.FONT_XTINY, e.roundTotal.toString() + (e.roundTotal == 1 ? " ROUND" : " ROUNDS"), Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+            var avg = avgHeartRate();
+            if (avg != null) {
+                dc.drawText(right, h * 75 / 100, Graphics.FONT_XTINY, "AVG HR " + avg.toString(), Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
+            }
+            dc.setColor(C_GOLD, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, h * 87 / 100, Graphics.FONT_TINY, "START = SAVE", center);
             return;
         }
 
-        dc.drawText(cx, h * 72 / 100, Graphics.FONT_TINY, "TOTAL " + fmtTime(e.totalMs() / 1000), center);
+        // ---- progress bar, or the LAP hint for open intervals ----
+        var d = e.durs[e.idx];
+        var barY = h * 73 / 100;
+        var barH = h / 40;
+        if (barH < 4) {
+            barH = 4;
+        }
+        if (d > 0) {
+            var frac = e.stepMs() * 100 / (d * 1000);
+            if (frac > 100) {
+                frac = 100;
+            }
+            dc.setColor(C_HAIR, C_HAIR);
+            dc.fillRectangle(left, barY, right - left, barH);
+            dc.setColor(e.running ? barColor : C_TEXT3, C_BG);
+            dc.fillRectangle(left, barY, (right - left) * frac / 100, barH);
+        } else if (!(e.loopLast && e.isLastStep())) {
+            dc.setColor(C_GOLD, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, barY + barH / 2, Graphics.FONT_XTINY, "PRESS LAP WHEN DONE", center);
+        }
 
+        // ---- next ----
         var next = nextText(e);
         if (next.length() > 0) {
-            dc.drawText(cx, h * 81 / 100, Graphics.FONT_XTINY, next, center);
+            dc.setColor(C_TEXT3, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, h * 80 / 100, Graphics.FONT_XTINY, next, center);
         }
 
+        // ---- total + heart rate ----
+        dc.setColor(C_TEXT2, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(left, h * 89 / 100, Graphics.FONT_XTINY, "TOTAL " + fmtTime(e.totalMs() / 1000), Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
         var hr = heartRate();
         if (hr != null) {
-            dc.drawText(cx, h * 90 / 100, Graphics.FONT_XTINY, "HR " + hr.toString(), center);
+            dc.drawText(right, h * 89 / 100, Graphics.FONT_XTINY, "HR " + hr.toString(), Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
         }
     }
 
@@ -118,10 +181,7 @@ class TimerView extends WatchUi.View {
         }
         var r = e.roundOf[e.idx];
         if (e.roundTotal > 1 && r > 0) {
-            return "ROUND " + r.toString() + "/" + e.roundTotal.toString();
-        }
-        if (e.kinds[e.idx].equals("open")) {
-            return "LAP when done";
+            return "ROUND " + r.toString() + " / " + e.roundTotal.toString();
         }
         if (e.kinds[e.idx].equals("up")) {
             return "CAP " + fmtTime(e.durs[e.idx]);
@@ -132,33 +192,46 @@ class TimerView extends WatchUi.View {
     hidden function nextText(e) {
         if (e.isLastStep()) {
             if (e.loopLast) {
-                return "LAP " + fmtTime(e.stepMs() / 1000);
+                return "LAP TIME " + fmtTime(e.stepMs() / 1000);
             }
             return "LAST ONE";
         }
         var n = e.idx + 1;
-        var s = "NEXT " + e.labels[n];
+        var s = "NEXT  " + e.labels[n];
         if (e.durs[n] > 0) {
             s = s + " " + fmtTime(e.durs[n]);
         }
         return s;
     }
 
-    hidden function stepCountText(e) {
+    hidden function planText(e) {
         var total = 0;
+        var open = false;
         for (var i = 0; i < e.durs.size(); i++) {
+            if (e.durs[i] == 0) {
+                open = true;
+            }
             total += e.durs[i];
         }
-        if (total > 0) {
-            return fmtTime(total) + " planned";
+        var s = e.roundTotal > 1 ? e.roundTotal.toString() + " rounds" : "";
+        if (open) {
+            return s.length() > 0 ? s + " - LAP ends open intervals" : "LAP ends open intervals";
         }
-        return "";
+        return s.length() > 0 ? s + " - " + fmtTime(total) : fmtTime(total);
     }
 
     hidden function heartRate() {
         var info = Activity.getActivityInfo();
         if (info != null && info.currentHeartRate != null) {
             return info.currentHeartRate;
+        }
+        return null;
+    }
+
+    hidden function avgHeartRate() {
+        var info = Activity.getActivityInfo();
+        if (info != null && info.averageHeartRate != null) {
+            return info.averageHeartRate;
         }
         return null;
     }
