@@ -1,3 +1,4 @@
 app/bin/
 app/developer_key.*
+tools/
 .DS_Store
