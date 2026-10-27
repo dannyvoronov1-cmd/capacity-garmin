@@ -1,6 +1,17 @@
 {
-  "updated": "2026-10-25",
+  "updated": "2026-10-27",
   "presets": [
+    {
+      "name": "Every 7:00 x 3",
+      "prep": 10,
+      "rounds": 3,
+      "steps": [
+        {
+          "l": "EVERY 7",
+          "s": 420
+        }
+      ]
+    },
     {
       "name": "6 x Open / 1:30",
       "prep": 0,
