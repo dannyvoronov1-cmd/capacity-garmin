@@ -1,6 +1,21 @@
 {
-  "updated": "2026-10-27",
+  "updated": "2026-11-19",
   "presets": [
+    {
+      "name": "EMOM 30 Odd/Even",
+      "prep": 10,
+      "rounds": 15,
+      "steps": [
+        {
+          "l": "ODD",
+          "s": 60
+        },
+        {
+          "l": "EVEN",
+          "s": 60
+        }
+      ]
+    },
     {
       "name": "Every 7:00 x 3",
       "prep": 10,
